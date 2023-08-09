@@ -34,3 +34,6 @@ ipywidgets
 
 # Openai Package
 openai
+
+# For Hugging Face Dataset
+datasets
