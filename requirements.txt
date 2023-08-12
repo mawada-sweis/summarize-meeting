@@ -37,3 +37,9 @@ openai
 
 # For Hugging Face Dataset
 datasets
+
+# For tokanizing task
+tiktoken
+
+# For remove stopwords
+nltk
