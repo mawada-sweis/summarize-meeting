@@ -10,5 +10,6 @@
         "<UI>",
         "<PM>"
     ],
-    "max_stemmed_transcript_tokens": 5851
+    "max_stemmed_transcript_tokens": 5851,
+    "max_free_filler_transcript_tokens": 5310
 }

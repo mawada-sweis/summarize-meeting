@@ -6,12 +6,14 @@ import tokanize_text
 import var_operations
 import tags
 import stemming_text
+import remove_filler_words
 
 MAIN_FILE_NAME = "transcript_summary.csv"
 PUNCTUATION_CLEANED_FILE_NAME = 'punctuation_cleaned.csv'
 TOKENS_FILE_NAME = 'tokenized_text.csv'
 STOPWORDS_CLEANED_FILE_NAME = 'stopwords_cleaned_text.csv'
 STEMMING_TOKENS_FILE_NAME = 'stemming_tokens.csv'
+FILLER_WORDS_FREE_FILE_NAME ='free_filler_tokens.csv'
 
 def main_function():
     print("Running the main function from prepare_data.py\n")
@@ -116,10 +118,36 @@ def main_function():
         var_operations.save_var('max_stemmed_transcript_tokens',
                                 max_stemmed_tokens)
 
+        stopwords_cleaned_dataset['stemmed_tokens'] = \
+            stopwords_cleaned_dataset['stemmed_tokens'].apply(json.dumps)
+
         load_dataset.save_to_csv(
             dataset=stopwords_cleaned_dataset,
             dataset_name=STEMMING_TOKENS_FILE_NAME,
             columns_name=['stemmed_tokens']
+        )
+
+    if not load_dataset.is_dataset_loaded(file_name=FILLER_WORDS_FREE_FILE_NAME):
+        stemmed_tokens_dataset = load_dataset.get_loaded_data(file_name=STEMMING_TOKENS_FILE_NAME)
+        
+        stemmed_tokens_dataset['stemmed_tokens'] = \
+            stemmed_tokens_dataset['stemmed_tokens'].apply(json.loads)
+        
+        stemmed_tokens_dataset['free_filler'] = \
+            stemmed_tokens_dataset['stemmed_tokens'].apply(
+                remove_filler_words.remove_from_list_str
+            )
+        
+        max_free_filler_tokens = tokanize_text.get_max_tokens_counts(
+            stemmed_tokens_dataset['free_filler']
+        )
+        var_operations.save_var('max_free_filler_transcript_tokens',
+                                max_free_filler_tokens)
+
+        load_dataset.save_to_csv(
+            dataset=stemmed_tokens_dataset,
+            dataset_name=FILLER_WORDS_FREE_FILE_NAME,
+            columns_name=['free_filler']
         )
 
     # Get and save transcript tags if not already done
@@ -137,6 +165,8 @@ def main_function():
         var_operations.get_value_by_var_name('max_clean_transcript_tokens'))
     print('Maximum stemmed tokens in clean transcripts:',
         var_operations.get_value_by_var_name('max_stemmed_transcript_tokens'))
+    print('Maximum free filler tokens in clean-stemmed transcripts:',
+        var_operations.get_value_by_var_name('max_free_filler_transcript_tokens'))
     print('The highest token count among the summary is:',
         var_operations.get_value_by_var_name('max_summary_tokens'))
     print('The tags are:', var_operations.get_value_by_var_name('tags'))
