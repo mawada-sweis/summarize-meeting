@@ -5,11 +5,13 @@ import remove_stopwords
 import tokanize_text
 import var_operations
 import tags
+import stemming_text
 
 MAIN_FILE_NAME = "transcript_summary.csv"
 PUNCTUATION_CLEANED_FILE_NAME = 'punctuation_cleaned.csv'
 TOKENS_FILE_NAME = 'tokenized_text.csv'
 STOPWORDS_CLEANED_FILE_NAME = 'stopwords_cleaned_text.csv'
+STEMMING_TOKENS_FILE_NAME = 'stemming_tokens.csv'
 
 def main_function():
     print("Running the main function from prepare_data.py\n")
@@ -91,10 +93,33 @@ def main_function():
         var_operations.save_var('max_clean_transcript_tokens',
                                 max_clean_transcript_tokens)
 
+        tokens_dataset['clean_transcript'] = \
+            tokens_dataset['clean_transcript'].apply(json.dumps)
+
         load_dataset.save_to_csv(
             dataset=tokens_dataset,
             dataset_name=STOPWORDS_CLEANED_FILE_NAME,
             columns_name=['clean_transcript']
+        )
+
+    if not load_dataset.is_dataset_loaded(file_name=STEMMING_TOKENS_FILE_NAME):
+        stopwords_cleaned_dataset = load_dataset.get_loaded_data(file_name=STOPWORDS_CLEANED_FILE_NAME)
+        stopwords_cleaned_dataset['clean_transcript'] = \
+            stopwords_cleaned_dataset['clean_transcript'].apply(json.loads)
+
+        stopwords_cleaned_dataset['stemmed_tokens'] = \
+            [stemming_text.stemming_tokens(tokens_list) for tokens_list in stopwords_cleaned_dataset['clean_transcript']]
+
+        max_stemmed_tokens = tokanize_text.get_max_tokens_counts(
+            stopwords_cleaned_dataset['stemmed_tokens']
+        )
+        var_operations.save_var('max_stemmed_transcript_tokens',
+                                max_stemmed_tokens)
+
+        load_dataset.save_to_csv(
+            dataset=stopwords_cleaned_dataset,
+            dataset_name=STEMMING_TOKENS_FILE_NAME,
+            columns_name=['stemmed_tokens']
         )
 
     # Get and save transcript tags if not already done
@@ -110,6 +135,8 @@ def main_function():
         var_operations.get_value_by_var_name('max_transcript_tokens'))
     print('Maximum tokens in clean transcripts: ',
         var_operations.get_value_by_var_name('max_clean_transcript_tokens'))
+    print('Maximum stemmed tokens in clean transcripts:',
+        var_operations.get_value_by_var_name('max_stemmed_transcript_tokens'))
     print('The highest token count among the summary is:',
         var_operations.get_value_by_var_name('max_summary_tokens'))
     print('The tags are:', var_operations.get_value_by_var_name('tags'))
