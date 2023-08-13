@@ -1,0 +1,12 @@
+{
+    "max_main_tokens": 15933,
+    "max_tokens_trans_without_punc": 79495,
+    "max_tokens_summary_without_punc": 4975,
+    "max_tokens_trans_without_punc_stopwords": 5851,
+    "tags": [
+        "<PM>",
+        "<ID>",
+        "<UI>",
+        "<ME>"
+    ]
+}

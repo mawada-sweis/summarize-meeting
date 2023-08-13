@@ -1,10 +1,5 @@
 import gradio as gr
 from src import openAI_API
-from src import load_dataset
-
-if not load_dataset.is_dataset_loaded():
-    load_dataset.load_dataset()
-
 
 demo = gr.Interface(
     fn=openAI_API.get_summarize_completion,

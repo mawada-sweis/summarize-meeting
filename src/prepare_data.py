@@ -1,56 +1,112 @@
-from datasets import load_dataset
-import pandas as pd
-import tiktoken
-import nltk
-from nltk.corpus import stopwords
+import json
+import load_dataset
+import remove_punctuation
+import remove_stopwords
+import tokenize_text
+import var_operations
+import tags
 
-# nltk.download('stopwords')
+MAIN_FILE_NAME = "transcript_summary.csv"
+PUNCTUATION_CLEANED_FILE_NAME = 'punctuation_cleaned.csv'
+TOKENS_FILE_NAME = 'tokenized_text.csv'
+STOPWORDS_CLEANED_FILE_NAME = 'stopwords_cleaned_text.csv'
+MODEL_ID = 'davinci'
 
-# Set the model ID to a fixed value for this scenario
-model_id = 'davinci'
+# Load the main dataset if not already loaded
+if not load_dataset.is_dataset_loaded(file_name=MAIN_FILE_NAME):
+    main_dataset = load_dataset.load_dataset_by_name(split_type='train')
+    main_dataset = load_dataset.save_to_csv(
+        dataset=main_dataset,
+        dataset_name=MAIN_FILE_NAME,
+        columns_name=['transcript', 'summary']
+    )
 
+# Remove punctuation marks from texts
+if not load_dataset.is_dataset_loaded(file_name=PUNCTUATION_CLEANED_FILE_NAME):
+    main_dataset = load_dataset.get_loaded_data(file_name=MAIN_FILE_NAME)
 
-def tokenize_text(text: str, model_ID: str) -> list:
-    """Tokenizes the input text into a list of tokens using 
-    the provided model ID for encoding and decoding.
+    max_main_tokens = tokenize_text.get_max_tokens_counts(
+        main_dataset['transcript'].apply(
+            lambda x: tokenize_text.tokenize(x, model_ID=MODEL_ID)
+            )
+    )
+    var_operations.save_var('max_main_tokens', max_main_tokens)
 
-    Args:
-        text (str): The input text to be tokenized.
-        model_ID (str): The identifier of the model used for encoding.
+    main_dataset['transcript_no_punctuation'] = \
+        main_dataset['transcript'].apply(remove_punctuation.remove_from_str)
 
-    Returns:
-        list: A list of tokens representing the tokenized input text.
-    """
-    enc = tiktoken.encoding_for_model(model_name=model_ID)
-    tokens = tiktoken.get_encoding(enc.name).encode(text)
-    tokens = [enc.decode_single_token_bytes(token).decode('utf-8').strip() for token in tokens]
-    return tokens
+    load_dataset.save_to_csv(
+        dataset=main_dataset,
+        dataset_name=PUNCTUATION_CLEANED_FILE_NAME,
+        columns_name=['transcript_no_punctuation', 'summary']
+    )
 
+# Tokenize the texts
+if not load_dataset.is_dataset_loaded(file_name=TOKENS_FILE_NAME):
+    punct_dataset = load_dataset.get_loaded_data(
+        file_name=PUNCTUATION_CLEANED_FILE_NAME
+    )
 
-def remove_stop_words(tokens: list) -> list:
-    """Remove English stopwords from a list of tokens.
+    punct_dataset['summary_tokens'] = punct_dataset['summary'].apply(
+        lambda summary: tokenize_text.tokenize(summary, model_ID=MODEL_ID)
+    )
+    max_summary_tokens = \
+        tokenize_text.get_max_tokens_counts(punct_dataset['summary_tokens'])
+    var_operations.save_var('max_summary_tokens', max_summary_tokens)
 
-    Args:
-        tokens (list): A list of tokens.
+    punct_dataset['transcript_tokens'] = \
+        punct_dataset['transcript_no_punctuation'].apply(
+        lambda trans: tokenize_text.tokenize(trans, model_ID=MODEL_ID)
+    )
+    max_transcript_tokens = \
+        tokenize_text.get_max_tokens_counts(punct_dataset['transcript_tokens'])
+    var_operations.save_var('max_transcript_tokens', max_transcript_tokens)
+    punct_dataset['transcript_tokens'] = \
+        punct_dataset['transcript_tokens'].apply(json.dumps)
 
-    Returns:
-        list: A new list of tokens with stopwords removed.
-    """
-    
-    if 'en_stopwords' not in globals():
-        en_stopwords = set(stopwords.words('english'))
-    return [token for token in tokens if token.lower() not in en_stopwords]
+    load_dataset.save_to_csv(
+        dataset=punct_dataset,
+        dataset_name=TOKENS_FILE_NAME,
+        columns_name=['summary_tokens', 'transcript_tokens']
+    )
 
+# Remove stopwords from texts
+if not load_dataset.is_dataset_loaded(file_name=STOPWORDS_CLEANED_FILE_NAME):
+    tokens_dataset = load_dataset.get_loaded_data(file_name=TOKENS_FILE_NAME)
 
-dataset = load_dataset('TalTechNLP/AMIsum', split='train+validation+test').to_pandas()
-dataset = pd.DataFrame(dataset.drop(columns='id')) 
+    tokens_dataset['transcript_tokens'] = \
+        tokens_dataset['transcript_tokens'].apply(json.loads)
 
-dataset['summary_tokens'] = dataset['summary'].apply(tokenize_text, model_ID=model_id)
-dataset['transcript_tokens'] = dataset['transcript'].apply(tokenize_text, model_ID=model_id)
+    tokens_dataset['clean_transcript'] = \
+        tokens_dataset['transcript_tokens'].apply(
+            remove_stopwords.remove_from_str_list
+    )
 
-# Get the talks position tag
-tags = set(dataset['transcript'].str.findall(r'<(.*?)>').sum())
-tags = [f'<{tag}>' for tag in tags]
+    max_clean_transcript_tokens = tokenize_text.get_max_tokens_counts(
+        tokens_dataset['clean_transcript']
+    )
+    var_operations.save_var('max_clean_transcript_tokens',
+                            max_clean_transcript_tokens)
 
-dataset['clean_transcript'] = dataset['transcript_tokens'].apply(remove_stop_words)
-dataset.to_csv('./dataset/cleaned_dataset.csv', index=False)
+    load_dataset.save_to_csv(
+        dataset=tokens_dataset,
+        dataset_name=STOPWORDS_CLEANED_FILE_NAME,
+        columns_name=['clean_transcript']
+    )
+
+# Get and save transcript tags if not already done
+if not var_operations.get_value_by_var_name('tags'):
+    transcript = load_dataset.get_loaded_data(MAIN_FILE_NAME)['transcript']
+    transcript_tags = tags.get_tags(transcript)
+    var_operations.save_var('tags', transcript_tags)
+
+# Print token counts and tags
+print('The highest token count among the transcripts is: ',
+      var_operations.get_value_by_var_name('max_main_tokens'))
+print('Maximum tokens in punctuation-free transcripts: ',
+      var_operations.get_value_by_var_name('max_transcript_tokens'))
+print('Maximum tokens in clean transcripts: ',
+      var_operations.get_value_by_var_name('max_clean_transcript_tokens'))
+print('The highest token count among the summary is:',
+      var_operations.get_value_by_var_name('max_summary_tokens'))
+print('The tags are:', var_operations.get_value_by_var_name('tags'))
