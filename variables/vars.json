@@ -1,12 +1,13 @@
 {
+    "user_model_ID": "davinci",
     "max_main_tokens": 15933,
-    "max_tokens_trans_without_punc": 79495,
-    "max_tokens_summary_without_punc": 4975,
-    "max_tokens_trans_without_punc_stopwords": 5851,
+    "max_summary_tokens": 613,
+    "max_transcript_tokens": 10738,
+    "max_clean_transcript_tokens": 5851,
     "tags": [
-        "<PM>",
+        "<ME>",
         "<ID>",
         "<UI>",
-        "<ME>"
+        "<PM>"
     ]
 }
