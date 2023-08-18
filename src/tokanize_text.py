@@ -24,3 +24,7 @@ def get_max_tokens_counts(column: list) -> int:
         if count > max_count:
             max_count = count
     return max_count
+
+
+def get_tokens_counts(tokens_list: list) -> int:
+    return len(tokens_list)

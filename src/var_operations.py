@@ -25,3 +25,10 @@ def get_all_vars() -> None:
 
 def get_value_by_var_name(var_name: str, default=None):
     return existing_data.get(var_name, default)
+
+
+def update_value_by_var_name(var_name: str, new_value, default=None):
+    existing_data[var_name] = new_value if var_name in existing_data else default
+
+    with open('./variables/vars.json', 'w') as f:
+        json.dump(existing_data, f, indent=4)

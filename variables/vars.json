@@ -4,12 +4,12 @@
     "max_summary_tokens": 613,
     "max_transcript_tokens": 10738,
     "max_clean_transcript_tokens": 5851,
-    "tags": [
-        "<ME>",
-        "<ID>",
-        "<UI>",
-        "<PM>"
-    ],
     "max_stemmed_transcript_tokens": 5851,
-    "max_free_filler_transcript_tokens": 5310
+    "max_free_filler_transcript_tokens": 5310,
+    "tags": [
+        "id",
+        "ui",
+        "pm",
+        "me"
+    ]
 }

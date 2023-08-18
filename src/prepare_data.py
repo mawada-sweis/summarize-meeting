@@ -1,12 +1,13 @@
 import json
-import load_dataset
-import remove_punctuation
-import remove_stopwords
-import tokanize_text
-import var_operations
-import tags
-import stemming_text
-import remove_filler_words
+import random
+from src import load_dataset
+from src import remove_punctuation
+from src import remove_stopwords
+from src import tokanize_text
+from src import var_operations
+from src import tags
+from src import stemming_text
+from src import remove_filler_words
 
 MAIN_FILE_NAME = "transcript_summary.csv"
 PUNCTUATION_CLEANED_FILE_NAME = 'punctuation_cleaned.csv'
@@ -14,6 +15,8 @@ TOKENS_FILE_NAME = 'tokenized_text.csv'
 STOPWORDS_CLEANED_FILE_NAME = 'stopwords_cleaned_text.csv'
 STEMMING_TOKENS_FILE_NAME = 'stemming_tokens.csv'
 FILLER_WORDS_FREE_FILE_NAME ='free_filler_tokens.csv'
+SAMPLES_FILE_NAME = 'samples.csv'
+
 
 def main_function():
     print("Running the main function from prepare_data.py\n")
@@ -21,7 +24,7 @@ def main_function():
     
     # Load the main dataset if not already loaded
     if not load_dataset.is_dataset_loaded(file_name=MAIN_FILE_NAME):
-        main_dataset = load_dataset.load_dataset_by_name(split_type='train')
+        main_dataset = load_dataset.load_dataset_by_name(split_type='train+test+validation')
         main_dataset = load_dataset.save_to_csv(
             dataset=main_dataset,
             dataset_name=MAIN_FILE_NAME,
@@ -104,6 +107,7 @@ def main_function():
             columns_name=['clean_transcript']
         )
 
+    # Steming the tokens
     if not load_dataset.is_dataset_loaded(file_name=STEMMING_TOKENS_FILE_NAME):
         stopwords_cleaned_dataset = load_dataset.get_loaded_data(file_name=STOPWORDS_CLEANED_FILE_NAME)
         stopwords_cleaned_dataset['clean_transcript'] = \
@@ -127,6 +131,7 @@ def main_function():
             columns_name=['stemmed_tokens']
         )
 
+    # Remove filler words
     if not load_dataset.is_dataset_loaded(file_name=FILLER_WORDS_FREE_FILE_NAME):
         stemmed_tokens_dataset = load_dataset.get_loaded_data(file_name=STEMMING_TOKENS_FILE_NAME)
         
@@ -155,6 +160,34 @@ def main_function():
         transcript = load_dataset.get_loaded_data(MAIN_FILE_NAME)['transcript']
         transcript_tags = tags.get_tags(transcript)
         var_operations.save_var('tags', transcript_tags)
+
+
+    if not load_dataset.is_dataset_loaded(file_name=SAMPLES_FILE_NAME):
+        # Define the list of file names
+        file_names = [
+            MAIN_FILE_NAME,
+            PUNCTUATION_CLEANED_FILE_NAME,
+            TOKENS_FILE_NAME,
+            STOPWORDS_CLEANED_FILE_NAME,
+            STEMMING_TOKENS_FILE_NAME,
+            FILLER_WORDS_FREE_FILE_NAME
+        ]
+
+        # Generate random indices
+        random_index = [random.randint(0, 50) for _ in range(5)]
+
+        # Load the main dataset
+        main_dataset = load_dataset.get_loaded_data(file_name=MAIN_FILE_NAME)
+        samples = pd.DataFrame(main_dataset.iloc[random_index])
+
+        # Loop through the other files and append columns
+        for file_name in file_names[1:]:
+            loaded_data = load_dataset.get_loaded_data(file_name=file_name)
+            samples = pd.concat([samples, loaded_data.iloc[random_index]], axis=1)
+
+        # Save the final samples DataFrame to a CSV file
+        samples.to_csv('./dataset/samples.csv', index=False)
+        
 
     # Print token counts and tags
     print('The highest token count among the transcripts is: ',
