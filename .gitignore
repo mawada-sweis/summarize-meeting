@@ -1,0 +1,6 @@
+/env
+/__pycache__
+flagged
+.env
+src/__pycache__
+.vscode
